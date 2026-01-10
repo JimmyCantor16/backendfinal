@@ -9,7 +9,6 @@ class UserController extends Controller
 {
     public function index()
     {
-        // Solo devolvemos id, name y email (nunca password)
-        return response()->json(User::select('id','name','email')->get());
+        return response()->json(User::all());
     }
 }
