@@ -34,6 +34,7 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        // Revocar SOLO el token actual
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([

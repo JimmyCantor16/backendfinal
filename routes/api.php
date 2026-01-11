@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
@@ -11,14 +10,24 @@ use App\Http\Controllers\Api\UserController;
 |--------------------------------------------------------------------------
 */
 
-// LOGIN (público)
+// 🔓 LOGIN (público)
 Route::post('/login', [AuthController::class, 'login']);
 
-// RUTAS PROTEGIDAS
+// 🔐 RUTAS PROTEGIDAS (SANCTUM)
 Route::middleware('auth:sanctum')->group(function () {
+
+    Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
+
+    Route::get('/me', [AuthController::class, 'me']);
 
     Route::get('/users', [UserController::class, 'index']);
 
-    Route::post('/logout', [AuthController::class, 'logout']);
+    // Ruta de prueba protegida
+    Route::get('/test-guard', function () {
+        return response()->json([
+            'message' => 'Sanctum funciona correctamente',
+            'user' => auth()->user()
+        ]);
+    });
 
 });
