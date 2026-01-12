@@ -16,7 +16,7 @@ Route::post('/login', [AuthController::class, 'login']);
 // 🔐 RUTAS PROTEGIDAS (SANCTUM)
 Route::middleware('auth:sanctum')->group(function () {
 
-    Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
+    Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::get('/me', [AuthController::class, 'me']);
 
