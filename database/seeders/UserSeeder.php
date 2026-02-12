@@ -4,16 +4,22 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\User;
+use App\Models\Role;
 use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        User::create([
+        $admin = User::create([
             'name' => 'Admin',
             'email' => 'admin@test.com',
-            'password' => Hash::make('password'),
+            'password' => 'password',
         ]);
+
+        $adminRole = Role::where('name', 'admin')->first();
+        if ($adminRole) {
+            $admin->roles()->attach($adminRole->id);
+        }
     }
 }

@@ -95,7 +95,7 @@ class AuthController extends Controller
             ['email' => 'admin@test.com'],
             [
                 'name'     => 'Admin',
-                'password' => Hash::make('password'),
+                'password' => 'password',
             ]
         );
 
