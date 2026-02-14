@@ -4,11 +4,14 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Category;
+use App\Models\Business;
 
 class CategorySeeder extends Seeder
 {
     public function run(): void
     {
+        $business = Business::first();
+
         $categories = [
             ['name' => 'Whisky', 'description' => 'Whisky y bourbon'],
             ['name' => 'Ron', 'description' => 'Ron blanco, dorado y añejo'],
@@ -21,7 +24,11 @@ class CategorySeeder extends Seeder
         ];
 
         foreach ($categories as $category) {
-            Category::firstOrCreate(['name' => $category['name']], $category);
+            $category['business_id'] = $business->id;
+            Category::withoutGlobalScopes()->firstOrCreate(
+                ['business_id' => $business->id, 'name' => $category['name']],
+                $category
+            );
         }
     }
 }

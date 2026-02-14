@@ -10,6 +10,10 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\CashRegisterController;
+use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\BusinessSettingsController;
 use App\Http\Controllers\Api\UserController;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -22,6 +26,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // SOLO ADMIN
     Route::middleware('role:admin')->group(function () {
         Route::get('/users', [UserController::class, 'index']);
+        Route::get('/audit-logs', [AuditLogController::class, 'index']);
     });
 
     // Catálogos
@@ -44,6 +49,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Movimientos de inventario
     Route::apiResource('inventory-movements', InventoryMovementController::class)->only(['index', 'store']);
 
+    // Caja registradora
+    Route::post('/cash-registers/open', [CashRegisterController::class, 'open']);
+    Route::get('/cash-registers/current', [CashRegisterController::class, 'current']);
+    Route::post('/cash-registers/{cash_register}/close', [CashRegisterController::class, 'close']);
+    Route::get('/cash-registers/{cash_register}/report', [CashRegisterController::class, 'report']);
+
     // Órdenes POS
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/open', [OrderController::class, 'open']);
@@ -51,6 +62,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/orders/{order}/remove-item/{item}', [OrderController::class, 'removeItem']);
     Route::post('/orders/{order}/close', [OrderController::class, 'close']);
     Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel']);
+
+    // Configuración del negocio
+    Route::get('/business/settings', [BusinessSettingsController::class, 'show']);
+    Route::post('/business/settings', [BusinessSettingsController::class, 'update']);
+
+    // Reportes
+    Route::get('/reports/daily', [ReportController::class, 'daily']);
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'summary']);

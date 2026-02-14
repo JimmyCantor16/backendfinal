@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\CashRegister;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -10,10 +11,12 @@ use Illuminate\Support\Facades\DB;
 class OrderService
 {
     protected InventoryService $inventoryService;
+    protected AuditService $auditService;
 
-    public function __construct(InventoryService $inventoryService)
+    public function __construct(InventoryService $inventoryService, AuditService $auditService)
     {
         $this->inventoryService = $inventoryService;
+        $this->auditService = $auditService;
     }
 
     /**
@@ -22,17 +25,38 @@ class OrderService
     public function createOrder(int $userId): Order
     {
         return DB::transaction(function () use ($userId) {
-            $lastOrder = Order::lockForUpdate()->orderByDesc('id')->first();
+            // Verificar caja abierta
+            $cashRegister = CashRegister::where('user_id', $userId)
+                ->where('status', 'open')
+                ->first();
+
+            if (!$cashRegister) {
+                throw new \InvalidArgumentException('Debes abrir una caja registradora antes de crear una orden.');
+            }
+
+            $businessId = auth()->user()->business_id;
+            $lastOrder = Order::where('business_id', $businessId)
+                ->lockForUpdate()
+                ->orderByDesc('id')
+                ->first();
             $nextNumber = $lastOrder ? intval(substr($lastOrder->order_number, 4)) + 1 : 1;
             $orderNumber = 'ORD-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
 
-            return Order::create([
+            $order = Order::create([
                 'user_id' => $userId,
                 'order_number' => $orderNumber,
                 'status' => 'open',
                 'total' => 0,
+                'cash_register_id' => $cashRegister->id,
                 'opened_at' => now(),
             ]);
+
+            $this->auditService->log('Order', $order->id, 'created', null, [
+                'order_number' => $orderNumber,
+                'cash_register_id' => $cashRegister->id,
+            ]);
+
+            return $order;
         });
     }
 
@@ -118,21 +142,53 @@ class OrderService
      */
     public function closeOrder(Order $order, string $paymentMethod): Order
     {
-        if ($order->status !== 'open') {
-            throw new \InvalidArgumentException('Solo se pueden cerrar órdenes abiertas.');
-        }
+        return DB::transaction(function () use ($order, $paymentMethod) {
+            // Re-leer con lock para prevenir doble cierre concurrente
+            $order = Order::lockForUpdate()->find($order->id);
 
-        if ($order->items()->count() === 0) {
-            throw new \InvalidArgumentException('No se puede cerrar una orden sin items.');
-        }
+            if ($order->status !== 'open') {
+                throw new \InvalidArgumentException('Solo se pueden cerrar órdenes abiertas.');
+            }
 
-        $order->update([
-            'status' => 'closed',
-            'payment_method' => $paymentMethod,
-            'closed_at' => now(),
-        ]);
+            if ($order->items()->count() === 0) {
+                throw new \InvalidArgumentException('No se puede cerrar una orden sin items.');
+            }
 
-        return $order->fresh();
+            $oldValues = ['status' => $order->status];
+
+            $order->update([
+                'status' => 'closed',
+                'payment_method' => $paymentMethod,
+                'closed_at' => now(),
+            ]);
+
+            // Refrescar para obtener el total real desde DB
+            $order->refresh();
+            $orderTotal = (float) $order->total;
+
+            // Actualizar totales de la caja registradora en tiempo real
+            if ($order->cash_register_id && $orderTotal > 0) {
+                $cashRegister = CashRegister::lockForUpdate()->find($order->cash_register_id);
+
+                if ($cashRegister && $cashRegister->status === 'open') {
+                    $cashRegister->increment('total_sales', $orderTotal);
+                    $cashRegister->increment('orders_closed');
+
+                    $methodField = 'total_' . $paymentMethod;
+                    if (in_array($methodField, ['total_cash', 'total_card', 'total_transfer', 'total_qr'])) {
+                        $cashRegister->increment($methodField, $orderTotal);
+                    }
+                }
+            }
+
+            $this->auditService->log('Order', $order->id, 'closed', $oldValues, [
+                'status' => 'closed',
+                'payment_method' => $paymentMethod,
+                'total' => $order->total,
+            ]);
+
+            return $order->fresh();
+        });
     }
 
     /**
@@ -140,11 +196,14 @@ class OrderService
      */
     public function cancelOrder(Order $order, int $userId): Order
     {
-        if ($order->status !== 'open') {
-            throw new \InvalidArgumentException('Solo se pueden cancelar órdenes abiertas.');
-        }
+        return DB::transaction(function () use ($order, $userId) {
+            // Re-leer con lock para prevenir cancelación concurrente
+            $order = Order::lockForUpdate()->find($order->id);
 
-        DB::transaction(function () use ($order, $userId) {
+            if ($order->status !== 'open') {
+                throw new \InvalidArgumentException('Solo se pueden cancelar órdenes abiertas.');
+            }
+
             foreach ($order->items as $item) {
                 $product = Product::lockForUpdate()->findOrFail($item->product_id);
 
@@ -159,12 +218,19 @@ class OrderService
                 );
             }
 
+            $oldValues = ['status' => $order->status, 'total' => $order->total];
+
             $order->update([
                 'status' => 'cancelled',
                 'closed_at' => now(),
             ]);
-        });
 
-        return $order->fresh();
+            $this->auditService->log('Order', $order->id, 'cancelled', $oldValues, [
+                'status' => 'cancelled',
+                'items_returned' => $order->items->count(),
+            ]);
+
+            return $order->fresh();
+        });
     }
 }

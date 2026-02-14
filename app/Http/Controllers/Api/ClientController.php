@@ -10,9 +10,14 @@ class ClientController extends Controller
 {
     public function index(Request $request)
     {
+        $request->validate([
+            'search' => 'nullable|string|max:100',
+            'per_page' => 'nullable|integer|min:1|max:100',
+        ]);
+
         $query = Client::query();
 
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
@@ -20,14 +25,16 @@ class ClientController extends Controller
             });
         }
 
-        return response()->json($query->orderBy('name')->get());
+        $perPage = $request->integer('per_page', 50);
+
+        return response()->json($query->orderBy('name')->paginate($perPage));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'document_type' => 'required|in:CC,NIT,CE,TI,PP',
-            'document_number' => 'required|string|max:20|unique:clients',
+            'document_number' => 'required|string|max:20|unique:clients,document_number,NULL,id,business_id,' . $request->user()->business_id,
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
@@ -48,7 +55,7 @@ class ClientController extends Controller
     {
         $validated = $request->validate([
             'document_type' => 'required|in:CC,NIT,CE,TI,PP',
-            'document_number' => 'required|string|max:20|unique:clients,document_number,' . $client->id,
+            'document_number' => 'required|string|max:20|unique:clients,document_number,' . $client->id . ',id,business_id,' . $request->user()->business_id,
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',

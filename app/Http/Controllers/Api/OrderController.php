@@ -22,9 +22,13 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
-        $order = $this->orderService->createOrder($request->user()->id);
+        try {
+            $order = $this->orderService->createOrder($request->user()->id);
 
-        return response()->json($order->load('user'), 201);
+            return response()->json($order->load('user'), 201);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        }
     }
 
     /**
@@ -46,7 +50,7 @@ class OrderController extends Controller
     public function addItem(Request $request, Order $order)
     {
         $validated = $request->validate([
-            'product_id' => 'required|exists:products,id',
+            'product_id' => 'required|exists:products,id,business_id,' . $request->user()->business_id,
             'quantity' => 'required|integer|min:1',
         ]);
 
