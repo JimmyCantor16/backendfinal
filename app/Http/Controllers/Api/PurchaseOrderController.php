@@ -114,7 +114,8 @@ class PurchaseOrderController extends Controller
                     $request->user()->id,
                     PurchaseOrder::class,
                     $purchaseOrder->id,
-                    "Recepción de orden {$purchaseOrder->order_number}"
+                    "Recepción de orden {$purchaseOrder->order_number}",
+                    'purchase_in'
                 );
             }
 

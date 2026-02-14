@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\InventoryMovementController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\SupplierController;
+use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\UserController;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -42,6 +43,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Movimientos de inventario
     Route::apiResource('inventory-movements', InventoryMovementController::class)->only(['index', 'store']);
+
+    // Órdenes POS
+    Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/orders/open', [OrderController::class, 'open']);
+    Route::post('/orders/{order}/add-item', [OrderController::class, 'addItem']);
+    Route::delete('/orders/{order}/remove-item/{item}', [OrderController::class, 'removeItem']);
+    Route::post('/orders/{order}/close', [OrderController::class, 'close']);
+    Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel']);
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'summary']);
