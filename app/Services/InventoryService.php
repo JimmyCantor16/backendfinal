@@ -16,7 +16,8 @@ class InventoryService
         int $userId,
         ?string $referenceType = null,
         ?int $referenceId = null,
-        ?string $reason = null
+        ?string $reason = null,
+        string $type = 'purchase_in'
     ): InventoryMovement {
         $stockBefore = $product->stock;
         $product->increment('stock', $quantity);
@@ -24,7 +25,7 @@ class InventoryService
         return InventoryMovement::create([
             'product_id' => $product->id,
             'user_id' => $userId,
-            'type' => 'purchase_in',
+            'type' => $type,
             'quantity' => $quantity,
             'stock_before' => $stockBefore,
             'stock_after' => $stockBefore + $quantity,
@@ -43,7 +44,8 @@ class InventoryService
         int $userId,
         ?string $referenceType = null,
         ?int $referenceId = null,
-        ?string $reason = null
+        ?string $reason = null,
+        string $type = 'sale_out'
     ): InventoryMovement {
         if ($product->stock < $quantity) {
             throw new \InvalidArgumentException(
@@ -57,7 +59,7 @@ class InventoryService
         return InventoryMovement::create([
             'product_id' => $product->id,
             'user_id' => $userId,
-            'type' => 'sale_out',
+            'type' => $type,
             'quantity' => $quantity,
             'stock_before' => $stockBefore,
             'stock_after' => $stockBefore - $quantity,

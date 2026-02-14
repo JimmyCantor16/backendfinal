@@ -83,7 +83,8 @@ class InvoiceService
                     $userId,
                     Invoice::class,
                     $invoice->id,
-                    "Venta factura {$invoiceNumber}"
+                    "Venta factura {$invoiceNumber}",
+                    'sale_out'
                 );
             }
 
@@ -110,7 +111,8 @@ class InvoiceService
                     $userId,
                     Invoice::class,
                     $invoice->id,
-                    "Cancelación factura {$invoice->invoice_number}"
+                    "Cancelación factura {$invoice->invoice_number}",
+                    'purchase_in'
                 );
             }
 
