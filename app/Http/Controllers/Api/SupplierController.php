@@ -10,9 +10,15 @@ class SupplierController extends Controller
 {
     public function index(Request $request)
     {
+        $request->validate([
+            'search' => 'nullable|string|max:100',
+            'is_active' => 'nullable|boolean',
+            'per_page' => 'nullable|integer|min:1|max:100',
+        ]);
+
         $query = Supplier::query();
 
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
@@ -24,14 +30,16 @@ class SupplierController extends Controller
             $query->where('is_active', $request->boolean('is_active'));
         }
 
-        return response()->json($query->orderBy('name')->get());
+        $perPage = $request->integer('per_page', 50);
+
+        return response()->json($query->orderBy('name')->paginate($perPage));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'nit' => 'required|string|max:20|unique:suppliers',
+            'nit' => 'required|string|max:20|unique:suppliers,nit,NULL,id,business_id,' . $request->user()->business_id,
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
             'address' => 'nullable|string|max:255',
@@ -53,7 +61,7 @@ class SupplierController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'nit' => 'required|string|max:20|unique:suppliers,nit,' . $supplier->id,
+            'nit' => 'required|string|max:20|unique:suppliers,nit,' . $supplier->id . ',id,business_id,' . $request->user()->business_id,
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
             'address' => 'nullable|string|max:255',

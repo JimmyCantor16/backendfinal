@@ -9,10 +9,12 @@ use Illuminate\Support\Facades\DB;
 class InvoiceService
 {
     protected InventoryService $inventoryService;
+    protected AuditService $auditService;
 
-    public function __construct(InventoryService $inventoryService)
+    public function __construct(InventoryService $inventoryService, AuditService $auditService)
     {
         $this->inventoryService = $inventoryService;
+        $this->auditService = $auditService;
     }
 
     /**
@@ -21,8 +23,12 @@ class InvoiceService
     public function createInvoice(array $data, int $userId): Invoice
     {
         return DB::transaction(function () use ($data, $userId) {
-            // Generar número de factura secuencial
-            $lastInvoice = Invoice::lockForUpdate()->orderByDesc('id')->first();
+            // Generar número de factura secuencial (scoped por negocio)
+            $businessId = auth()->user()->business_id;
+            $lastInvoice = Invoice::where('business_id', $businessId)
+                ->lockForUpdate()
+                ->orderByDesc('id')
+                ->first();
             $nextNumber = $lastInvoice ? intval(substr($lastInvoice->invoice_number, 4)) + 1 : 1;
             $invoiceNumber = 'FAC-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
 
@@ -88,6 +94,13 @@ class InvoiceService
                 );
             }
 
+            $this->auditService->log('Invoice', $invoice->id, 'created', null, [
+                'invoice_number' => $invoiceNumber,
+                'client_id' => $data['client_id'],
+                'total' => $total,
+                'items_count' => count($data['items']),
+            ]);
+
             return $invoice;
         });
     }
@@ -116,7 +129,14 @@ class InvoiceService
                 );
             }
 
+            $oldValues = ['status' => $invoice->status, 'total' => $invoice->total];
+
             $invoice->update(['status' => 'cancelled']);
+
+            $this->auditService->log('Invoice', $invoice->id, 'cancelled', $oldValues, [
+                'status' => 'cancelled',
+                'invoice_number' => $invoice->invoice_number,
+            ]);
 
             return $invoice->fresh();
         });

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\PurchaseOrder;
 use App\Models\Product;
+use App\Services\AuditService;
 use App\Services\InventoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,41 +13,55 @@ use Illuminate\Support\Facades\DB;
 class PurchaseOrderController extends Controller
 {
     protected InventoryService $inventoryService;
+    protected AuditService $auditService;
 
-    public function __construct(InventoryService $inventoryService)
+    public function __construct(InventoryService $inventoryService, AuditService $auditService)
     {
         $this->inventoryService = $inventoryService;
+        $this->auditService = $auditService;
     }
 
     public function index(Request $request)
     {
+        $request->validate([
+            'status' => 'nullable|in:pending,received,cancelled',
+            'supplier_id' => 'nullable|integer',
+            'per_page' => 'nullable|integer|min:1|max:100',
+        ]);
+
         $query = PurchaseOrder::with(['supplier', 'user']);
 
-        if ($request->has('status')) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        if ($request->has('supplier_id')) {
+        if ($request->filled('supplier_id')) {
             $query->where('supplier_id', $request->supplier_id);
         }
 
-        return response()->json($query->orderByDesc('created_at')->get());
+        $perPage = $request->integer('per_page', 50);
+
+        return response()->json($query->orderByDesc('created_at')->paginate($perPage));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'supplier_id' => 'required|exists:suppliers,id',
+            'supplier_id' => 'required|exists:suppliers,id,business_id,' . $request->user()->business_id,
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.product_id' => 'required|exists:products,id,business_id,' . $request->user()->business_id,
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_cost' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
         ]);
 
         $order = DB::transaction(function () use ($validated, $request) {
-            // Generar número de orden secuencial
-            $lastOrder = PurchaseOrder::lockForUpdate()->orderByDesc('id')->first();
+            // Generar número de orden secuencial (scoped por negocio)
+            $businessId = $request->user()->business_id;
+            $lastOrder = PurchaseOrder::where('business_id', $businessId)
+                ->lockForUpdate()
+                ->orderByDesc('id')
+                ->first();
             $nextNumber = $lastOrder ? intval(substr($lastOrder->order_number, 3)) + 1 : 1;
             $orderNumber = 'OC-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
 
@@ -123,6 +138,11 @@ class PurchaseOrderController extends Controller
                 'status' => 'received',
                 'received_at' => now(),
             ]);
+
+            $this->auditService->log('PurchaseOrder', $purchaseOrder->id, 'received',
+                ['status' => 'pending'],
+                ['status' => 'received', 'order_number' => $purchaseOrder->order_number, 'total' => $purchaseOrder->total]
+            );
         });
 
         return response()->json(
@@ -142,6 +162,11 @@ class PurchaseOrderController extends Controller
         }
 
         $purchaseOrder->update(['status' => 'cancelled']);
+
+        $this->auditService->log('PurchaseOrder', $purchaseOrder->id, 'cancelled',
+            ['status' => 'pending'],
+            ['status' => 'cancelled', 'order_number' => $purchaseOrder->order_number]
+        );
 
         return response()->json(
             $purchaseOrder->load(['supplier', 'user', 'items.product'])

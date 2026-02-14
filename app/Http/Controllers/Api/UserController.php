@@ -10,8 +10,7 @@ class UserController extends Controller
 {
     public function index()
     {
-        // Devuelve todos los usuarios en JSON
-        $users = User::all();
-        return response()->json($users); // Esto es importante
+        $users = User::where('business_id', auth()->user()->business_id)->get();
+        return response()->json($users);
     }
 }

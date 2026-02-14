@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Traits\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Invoice extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToBusiness;
 
     protected $fillable = [
+        'business_id',
         'client_id',
         'user_id',
         'invoice_number',

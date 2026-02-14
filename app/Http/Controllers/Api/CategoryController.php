@@ -10,19 +10,26 @@ class CategoryController extends Controller
 {
     public function index(Request $request)
     {
+        $request->validate([
+            'search' => 'nullable|string|max:100',
+            'per_page' => 'nullable|integer|min:1|max:100',
+        ]);
+
         $query = Category::query();
 
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        return response()->json($query->orderBy('name')->get());
+        $perPage = $request->integer('per_page', 50);
+
+        return response()->json($query->orderBy('name')->paginate($perPage));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:categories',
+            'name' => 'required|string|max:255|unique:categories,name,NULL,id,business_id,' . $request->user()->business_id,
             'description' => 'nullable|string|max:255',
         ]);
 
@@ -39,7 +46,7 @@ class CategoryController extends Controller
     public function update(Request $request, Category $category)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
+            'name' => 'required|string|max:255|unique:categories,name,' . $category->id . ',id,business_id,' . $request->user()->business_id,
             'description' => 'nullable|string|max:255',
         ]);
 

@@ -4,11 +4,13 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Supplier;
+use App\Models\Business;
 
 class SupplierSeeder extends Seeder
 {
     public function run(): void
     {
+        $business = Business::first();
         $suppliers = [
             [
                 'name' => 'Distribuidora Nacional de Licores',
@@ -29,7 +31,11 @@ class SupplierSeeder extends Seeder
         ];
 
         foreach ($suppliers as $supplier) {
-            Supplier::firstOrCreate(['nit' => $supplier['nit']], $supplier);
+            $supplier['business_id'] = $business->id;
+            Supplier::withoutGlobalScopes()->firstOrCreate(
+                ['business_id' => $business->id, 'nit' => $supplier['nit']],
+                $supplier
+            );
         }
     }
 }

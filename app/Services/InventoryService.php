@@ -7,6 +7,13 @@ use App\Models\Product;
 
 class InventoryService
 {
+    protected AuditService $auditService;
+
+    public function __construct(AuditService $auditService)
+    {
+        $this->auditService = $auditService;
+    }
+
     /**
      * Aumenta el stock de un producto (compras).
      */
@@ -78,19 +85,32 @@ class InventoryService
         int $userId,
         string $reason
     ): InventoryMovement {
-        $stockBefore = $product->stock;
-        $quantity = $newStock - $stockBefore;
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($product, $newStock, $userId, $reason) {
+            $product = Product::lockForUpdate()->findOrFail($product->id);
 
-        $product->update(['stock' => $newStock]);
+            $stockBefore = $product->stock;
+            $quantity = $newStock - $stockBefore;
 
-        return InventoryMovement::create([
-            'product_id' => $product->id,
-            'user_id' => $userId,
-            'type' => 'adjustment',
-            'quantity' => $quantity,
-            'stock_before' => $stockBefore,
-            'stock_after' => $newStock,
-            'reason' => $reason,
-        ]);
+            $product->update(['stock' => $newStock]);
+
+            $movement = InventoryMovement::create([
+                'product_id' => $product->id,
+                'user_id' => $userId,
+                'type' => 'adjustment',
+                'quantity' => $quantity,
+                'stock_before' => $stockBefore,
+                'stock_after' => $newStock,
+                'reason' => $reason,
+            ]);
+
+            $this->auditService->log('Product', $product->id, 'stock_adjusted', [
+                'stock' => $stockBefore,
+            ], [
+                'stock' => $newStock,
+                'reason' => $reason,
+            ]);
+
+            return $movement;
+        });
     }
 }
