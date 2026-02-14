@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
-use App\Models\Role;
 use App\Services\RecaptchaService;
 use Illuminate\Support\Facades\Hash;
 
@@ -56,7 +55,7 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'user'          => $user->load('roles'),
+            'user'          => $user->load(['roles', 'business']),
             'access_token' => $token,
             'token_type'   => 'Bearer'
         ]);
@@ -80,42 +79,8 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         return response()->json(
-            $request->user()->load('roles')
+            $request->user()->load(['roles', 'business'])
         );
     }
 
-    /**
-     * 🛠️ CREAR ADMIN (solo para setup inicial)
-     * URL: /api/create-admin
-     */
-    public function createAdmin()
-    {
-        // 1️⃣ Crear o actualizar usuario admin
-        $admin = User::updateOrCreate(
-            ['email' => 'admin@test.com'],
-            [
-                'name'     => 'Admin',
-                'password' => 'password',
-            ]
-        );
-
-        // 2️⃣ Buscar rol admin
-        $adminRole = Role::where('name', 'admin')->first();
-
-        if (!$adminRole) {
-            return response()->json([
-                'message' => 'El rol admin no existe. Ejecuta el seeder de roles.'
-            ], 500);
-        }
-
-        // 3️⃣ Asignar rol si no lo tiene
-        if (!$admin->roles()->where('name', 'admin')->exists()) {
-            $admin->roles()->attach($adminRole->id);
-        }
-
-        return response()->json([
-            'message' => 'Admin creado y rol asignado correctamente',
-            'user'    => $admin->load('roles')
-        ]);
-    }
 }

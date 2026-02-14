@@ -5,12 +5,14 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\Business;
 
 class ProductSeeder extends Seeder
 {
     public function run(): void
     {
-        $categories = Category::pluck('id', 'name');
+        $business = Business::first();
+        $categories = Category::withoutGlobalScopes()->where('business_id', $business->id)->pluck('id', 'name');
 
         $products = [
             [
@@ -64,9 +66,10 @@ class ProductSeeder extends Seeder
             $categoryId = $categories[$data['category']] ?? null;
             if (!$categoryId) continue;
 
-            Product::firstOrCreate(
-                ['sku' => $data['sku']],
+            Product::withoutGlobalScopes()->firstOrCreate(
+                ['business_id' => $business->id, 'sku' => $data['sku']],
                 [
+                    'business_id' => $business->id,
                     'category_id' => $categoryId,
                     'name' => $data['name'],
                     'purchase_price' => $data['purchase_price'],

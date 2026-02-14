@@ -4,11 +4,13 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Client;
+use App\Models\Business;
 
 class ClientSeeder extends Seeder
 {
     public function run(): void
     {
+        $business = Business::first();
         $clients = [
             [
                 'document_type' => 'CC',
@@ -29,7 +31,11 @@ class ClientSeeder extends Seeder
         ];
 
         foreach ($clients as $client) {
-            Client::firstOrCreate(['document_number' => $client['document_number']], $client);
+            $client['business_id'] = $business->id;
+            Client::withoutGlobalScopes()->firstOrCreate(
+                ['business_id' => $business->id, 'document_number' => $client['document_number']],
+                $client
+            );
         }
     }
 }

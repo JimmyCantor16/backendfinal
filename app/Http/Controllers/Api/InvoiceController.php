@@ -18,33 +18,43 @@ class InvoiceController extends Controller
 
     public function index(Request $request)
     {
+        $request->validate([
+            'status' => 'nullable|in:completed,cancelled',
+            'client_id' => 'nullable|integer',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
+            'per_page' => 'nullable|integer|min:1|max:100',
+        ]);
+
         $query = Invoice::with(['client', 'user']);
 
-        if ($request->has('status')) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        if ($request->has('client_id')) {
+        if ($request->filled('client_id')) {
             $query->where('client_id', $request->client_id);
         }
 
-        if ($request->has('date_from')) {
+        if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
         }
 
-        if ($request->has('date_to')) {
+        if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        return response()->json($query->orderByDesc('created_at')->get());
+        $perPage = $request->integer('per_page', 50);
+
+        return response()->json($query->orderByDesc('created_at')->paginate($perPage));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'client_id' => 'required|exists:clients,id',
+            'client_id' => 'required|exists:clients,id,business_id,' . $request->user()->business_id,
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.product_id' => 'required|exists:products,id,business_id,' . $request->user()->business_id,
             'items.*.quantity' => 'required|integer|min:1',
             'notes' => 'nullable|string',
         ]);
