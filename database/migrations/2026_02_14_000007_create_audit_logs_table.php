@@ -15,8 +15,8 @@ return new class extends Migration
             $table->string('entity_type');           // e.g. "Order", "CashRegister"
             $table->unsignedBigInteger('entity_id')->nullable();
             $table->string('action');                 // e.g. "created", "closed", "cancelled"
-            $table->jsonb('old_values')->nullable();
-            $table->jsonb('new_values')->nullable();
+            $table->json('old_values')->nullable();
+            $table->json('new_values')->nullable();
             $table->string('ip_address', 45)->nullable();
             $table->string('user_agent')->nullable();
             $table->timestamp('created_at')->useCurrent();

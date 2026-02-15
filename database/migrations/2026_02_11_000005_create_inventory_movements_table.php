@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('product_id')->constrained()->restrictOnDelete();
             $table->foreignId('user_id')->constrained()->restrictOnDelete();
-            $table->enum('type', ['purchase_in', 'sale_out', 'adjustment']);
+            $table->enum('type', ['purchase_in', 'sale_out', 'adjustment', 'order_out', 'order_return']);
             $table->integer('quantity');
             $table->integer('stock_before');
             $table->integer('stock_after');

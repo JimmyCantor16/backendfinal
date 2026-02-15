@@ -28,7 +28,10 @@ return new class extends Migration
             $table->index('business_id');
         });
 
-        DB::statement("ALTER TABLE cash_registers ADD CONSTRAINT cash_registers_status_check CHECK (status::text = ANY (ARRAY['open','closed']::text[]))");
+        // CHECK constraint solo para PostgreSQL
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE cash_registers ADD CONSTRAINT cash_registers_status_check CHECK (status::text = ANY (ARRAY['open','closed']::text[]))");
+        }
     }
 
     public function down(): void
