@@ -26,7 +26,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // SOLO ADMIN
     Route::middleware('role:admin')->group(function () {
-        Route::get('/users', [UserController::class, 'index']);
+        Route::apiResource('users', UserController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::get('/audit-logs', [AuditLogController::class, 'index']);
     });
 
