@@ -74,6 +74,26 @@ class AuthController extends Controller
     }
 
     /**
+     * 🔑 VERIFICAR CONTRASEÑA (usuario autenticado)
+     */
+    public function verifyPassword(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        if (!Hash::check($request->password, $request->user()->password)) {
+            return response()->json([
+                'message' => 'Contraseña incorrecta'
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Contraseña verificada correctamente'
+        ]);
+    }
+
+    /**
      * 👤 USUARIO AUTENTICADO
      */
     public function me(Request $request)

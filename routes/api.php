@@ -22,6 +22,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/verify-password', [AuthController::class, 'verifyPassword']);
 
     // SOLO ADMIN
     Route::middleware('role:admin')->group(function () {
