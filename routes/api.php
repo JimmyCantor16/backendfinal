@@ -10,22 +10,24 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\PosController;
 use App\Http\Controllers\Api\CashRegisterController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\BusinessSettingsController;
 use App\Http\Controllers\Api\UserController;
 
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
 Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/verify-password', [AuthController::class, 'verifyPassword']);
 
     // SOLO ADMIN
     Route::middleware('role:admin')->group(function () {
-        Route::get('/users', [UserController::class, 'index']);
+        Route::apiResource('users', UserController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::get('/audit-logs', [AuditLogController::class, 'index']);
     });
 
@@ -55,6 +57,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/cash-registers/{cash_register}/close', [CashRegisterController::class, 'close']);
     Route::get('/cash-registers/{cash_register}/report', [CashRegisterController::class, 'report']);
 
+    // POS — endpoint agregado (1 request en lugar de 4) para acelerar el cargue de /pos
+    Route::get('/pos/init', [PosController::class, 'init']);
+
     // Órdenes POS
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/open', [OrderController::class, 'open']);
@@ -72,4 +77,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'summary']);
+
+    // Businesses (multi-tenant) — definidas en routes/business.php
+    require __DIR__.'/business.php';
 });
+
+// Subscriptions / Billing — definidas en routes/subscription.php
+// (incluye /plans públicos, /subscriptions auth, y /stripe/webhook sin auth)
+require __DIR__.'/subscription.php';

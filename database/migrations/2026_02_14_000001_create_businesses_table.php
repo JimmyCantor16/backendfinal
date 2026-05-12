@@ -18,13 +18,15 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('subscription_plan')->default('basic');
             $table->string('subscription_status')->default('active');
-            $table->jsonb('plan_limits')->nullable();
+            $table->json('plan_limits')->nullable();
             $table->timestamps();
         });
 
-        // CHECK constraints para enums en PostgreSQL
-        DB::statement("ALTER TABLE businesses ADD CONSTRAINT businesses_subscription_plan_check CHECK (subscription_plan::text = ANY (ARRAY['basic','pro','enterprise']::text[]))");
-        DB::statement("ALTER TABLE businesses ADD CONSTRAINT businesses_subscription_status_check CHECK (subscription_status::text = ANY (ARRAY['active','suspended','cancelled']::text[]))");
+        // CHECK constraints solo para PostgreSQL
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE businesses ADD CONSTRAINT businesses_subscription_plan_check CHECK (subscription_plan::text = ANY (ARRAY['basic','pro','enterprise']::text[]))");
+            DB::statement("ALTER TABLE businesses ADD CONSTRAINT businesses_subscription_status_check CHECK (subscription_status::text = ANY (ARRAY['active','suspended','cancelled']::text[]))");
+        }
     }
 
     public function down(): void

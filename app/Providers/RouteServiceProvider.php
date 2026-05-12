@@ -24,8 +24,18 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Default API limiter: 60 requests / minute per authenticated user
+        // (falls back to client IP when unauthenticated). Applied globally
+        // through the 'api' middleware group in app/Http/Kernel.php.
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // Brute-force protection for the login endpoint: 5 attempts /
+        // minute per IP. Apply via ->middleware('throttle:login') on the
+        // login route.
+        RateLimiter::for('login', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
         });
 
         $this->routes(function () {

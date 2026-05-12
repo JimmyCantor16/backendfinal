@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Cashier\Billable;
 
 class Business extends Model
 {
-    use HasFactory;
+    use Billable, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -16,6 +18,7 @@ class Business extends Model
         'phone',
         'email',
         'logo',
+        'owner_user_id',
         'subscription_plan',
         'subscription_status',
         'plan_limits',
@@ -25,9 +28,34 @@ class Business extends Model
         'plan_limits' => 'array',
     ];
 
+    /**
+     * Dueño/creador del negocio.
+     */
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'owner_user_id');
+    }
+
+    /**
+     * Usuarios que pertenecen a este negocio (modelo actual: pertenencia directa
+     * vía users.business_id; relación 1:N tratada como "users" para compatibilidad
+     * con la API solicitada — el modelo lógico es belongsToMany pero la tabla
+     * concreta es hasMany).
+     */
     public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+    /**
+     * Settings del negocio. En esta arquitectura los settings viven en la propia
+     * tabla businesses (ver BusinessSettingsController), por lo que la "relación"
+     * apunta al mismo registro. Se expone como accessor para encajar con el
+     * contrato `settings()` solicitado sin introducir una tabla extra.
+     */
+    public function settings()
+    {
+        return $this;
     }
 
     public function categories()

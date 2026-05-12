@@ -18,4 +18,15 @@ yarn-error.log
 /.idea
 /.vscode
 database/backups/*
+out.txt
 
+
+**/caddy
+frankenphp
+frankenphp-worker.php
+
+# Claude Code local settings
+.claude/
+
+# Swagger generated docs — se regeneran con `php artisan l5-swagger:generate`
+/storage/api-docs/

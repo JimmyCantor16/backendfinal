@@ -10,6 +10,26 @@ use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
+    /**
+     * @OA\Get(
+     *     path="/api/dashboard/summary",
+     *     tags={"Dashboard"},
+     *     summary="Resumen ejecutivo: ventas del día/mes, órdenes POS, facturas y stock bajo.",
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Resumen del dashboard",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="ventas_hoy", type="number", format="float", example=1234.50),
+     *             @OA\Property(property="ventas_mes", type="number", format="float", example=45670.10),
+     *             @OA\Property(property="facturas_hoy", type="integer", example=8),
+     *             @OA\Property(property="ordenes_pos_hoy", type="integer", example=12),
+     *             @OA\Property(property="productos_stock_bajo", type="array", @OA\Items(type="object"))
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="No autenticado"),
+     * )
+     */
     public function summary()
     {
         $today = Carbon::today();
