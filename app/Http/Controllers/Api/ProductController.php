@@ -189,6 +189,48 @@ class ProductController extends Controller
     }
 
     /**
+     * @OA\Get(
+     *     path="/api/products/barcode/{code}",
+     *     tags={"Products"},
+     *     summary="Busca un producto activo por código de barras (escáner POS).",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(
+     *         name="code",
+     *         in="path",
+     *         required=true,
+     *         description="Código de barras (alfanumérico, soporta guiones).",
+     *         @OA\Schema(type="string", maxLength=64, pattern="^[a-zA-Z0-9\-]+$")
+     *     ),
+     *     @OA\Response(response=200, description="Producto encontrado"),
+     *     @OA\Response(response=401, description="No autenticado"),
+     *     @OA\Response(response=403, description="Sin permisos para ver el producto"),
+     *     @OA\Response(response=404, description="Producto no encontrado para ese código"),
+     * )
+     */
+    public function byBarcode(string $code)
+    {
+        $product = Product::with('category')
+            ->where('barcode', $code)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$product) {
+            return response()->json([
+                'message' => 'Producto no encontrado para ese código',
+            ], 404);
+        }
+
+        // Aplica policy view del ProductPolicy si está registrada
+        if (class_exists(\App\Policies\ProductPolicy::class)
+            && method_exists(\App\Policies\ProductPolicy::class, 'view')
+            && auth()->check()) {
+            $this->authorize('view', $product);
+        }
+
+        return response()->json($product);
+    }
+
+    /**
      * @OA\Delete(
      *     path="/api/products/{product}",
      *     tags={"Products"},
