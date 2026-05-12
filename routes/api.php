@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\PosController;
 use App\Http\Controllers\Api\CashRegisterController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\ReportController;
@@ -55,6 +56,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/cash-registers/current', [CashRegisterController::class, 'current']);
     Route::post('/cash-registers/{cash_register}/close', [CashRegisterController::class, 'close']);
     Route::get('/cash-registers/{cash_register}/report', [CashRegisterController::class, 'report']);
+
+    // POS — endpoint agregado (1 request en lugar de 4) para acelerar el cargue de /pos
+    Route::get('/pos/init', [PosController::class, 'init']);
 
     // Órdenes POS
     Route::post('/orders', [OrderController::class, 'store']);
