@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\BusinessSettingsController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\PdfController;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
@@ -37,6 +38,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('clients', ClientController::class);
 
     // Productos
+    // Barcode lookup — DEBE ir antes del apiResource para no chocar con /products/{product}
+    Route::get('/products/barcode/{code}', [ProductController::class, 'byBarcode'])
+        ->where('code', '[a-zA-Z0-9\-]+');
     Route::apiResource('products', ProductController::class);
 
     // Órdenes de compra
@@ -74,6 +78,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Reportes
     Route::get('/reports/daily', [ReportController::class, 'daily']);
+
+    // PDFs
+    Route::get('/invoices/{invoice}/pdf', [PdfController::class, 'invoice']);
+    Route::get('/cash-registers/{cash_register}/report.pdf', [PdfController::class, 'cashRegisterReport']);
+    Route::get('/reports/daily.pdf', [PdfController::class, 'dailyReport']);
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'summary']);
