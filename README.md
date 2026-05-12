@@ -1,66 +1,208 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Jamz Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> API REST del POS multi-tenant Jamz. Provee autenticación, catálogo, inventario, POS, caja, facturación y reportes para múltiples negocios.
 
-## About Laravel
+## Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+| Tecnología | Versión | Propósito |
+|------------|---------|-----------|
+| PHP | 8.1+ | Lenguaje |
+| Laravel | 10.x | Framework HTTP |
+| PostgreSQL | 14+ | Base de datos principal |
+| Laravel Sanctum | 3.2 | Auth por token (Bearer) |
+| darkaonline/l5-swagger | 8.6 | OpenAPI / Swagger UI |
+| laravel/cashier (Stripe) | en progreso | Suscripciones / facturación SaaS |
+| Pint | 1.x | Formato de código |
+| PHPUnit | 10.x | Testing |
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Requisitos previos
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- PHP 8.1+ con extensiones: `pdo_pgsql`, `mbstring`, `openssl`, `xml`, `ctype`, `json`, `bcmath` (y `pdo_sqlite` para tests).
+- Composer 2+.
+- PostgreSQL 14+ (o SQLite local solo para pruebas rápidas).
+- Node 18+ (opcional; solo si se compilan assets de Laravel).
 
-## Learning Laravel
+## Setup local
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+```bash
+# 1. Dependencias
+composer install
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+# 2. Variables de entorno
+cp .env.example .env
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# 3. Clave de aplicación
+php artisan key:generate
 
-## Laravel Sponsors
+# 4. Migraciones + seeds (crea negocios demo, roles, usuario admin)
+php artisan migrate --seed
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# 5. Servir API en http://localhost:8000
+php artisan serve
+```
 
-### Premium Partners
+> Nota: el `.env.example` actual aún es el boilerplate de Laravel (MySQL). Para Jamz se usa PostgreSQL: ajustar `DB_CONNECTION=pgsql`, `DB_PORT=5432`, etc. al copiarlo.
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+## Variables de entorno
 
-## Contributing
+| Variable | Descripción | Ejemplo | Requerido |
+|----------|-------------|---------|-----------|
+| `APP_NAME` | Nombre de la app | `Jamz` | si |
+| `APP_ENV` | Entorno de ejecución | `local` / `production` | si |
+| `APP_KEY` | Clave generada por `key:generate` | `base64:...` | si |
+| `APP_DEBUG` | Modo debug | `true` | si |
+| `APP_URL` | URL base del backend | `http://localhost:8000` | si |
+| `LOG_CHANNEL` | Canal de logs | `stack` | si |
+| `DB_CONNECTION` | Driver de BD | `pgsql` | si |
+| `DB_HOST` | Host de la BD | `127.0.0.1` | si |
+| `DB_PORT` | Puerto de la BD | `5432` | si |
+| `DB_DATABASE` | Nombre de la BD | `jamz` | si |
+| `DB_USERNAME` | Usuario de la BD | `postgres` | si |
+| `DB_PASSWORD` | Clave de la BD | `postgres` | si |
+| `SANCTUM_STATEFUL_DOMAINS` | Dominios de frontends que reciben cookie de sesión | `localhost:8080,127.0.0.1:8080` | si (SPA) |
+| `SESSION_DOMAIN` | Dominio de la cookie de sesión | `localhost` | no |
+| `RECAPTCHA_SECRET` | Llave secreta de reCAPTCHA v3 (login) | `6Lc...` | si |
+| `STRIPE_KEY` | Public key de Stripe (Cashier) | `pk_test_...` | si (billing) |
+| `STRIPE_SECRET` | Secret key de Stripe | `sk_test_...` | si (billing) |
+| `STRIPE_WEBHOOK_SECRET` | Secret del endpoint de webhooks | `whsec_...` | si (billing) |
+| `CASHIER_CURRENCY` | Moneda por defecto | `cop` | si (billing) |
+| `MAIL_*` | SMTP para notificaciones | ver `.env.example` | no |
+| `L5_SWAGGER_GENERATE_ALWAYS` | Regenerar OpenAPI en cada request | `true` (solo local) | no |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Comandos comunes
 
-## Code of Conduct
+| Comando | Qué hace |
+|---------|----------|
+| `php artisan serve` | Levanta el servidor de desarrollo en `:8000` |
+| `php artisan migrate` | Ejecuta migraciones |
+| `php artisan migrate:fresh --seed` | Reinicia BD y vuelve a sembrar |
+| `php artisan db:seed --class=NombreSeeder` | Ejecuta un seeder concreto |
+| `php artisan l5-swagger:generate` | Regenera la documentación OpenAPI |
+| `php artisan route:list` | Lista todas las rutas registradas |
+| `php artisan tinker` | REPL para probar modelos |
+| `php artisan cache:clear && php artisan config:clear` | Limpia caches al cambiar `.env` |
+| `php vendor/bin/pint` | Formatea el código PHP |
+| `php vendor/bin/phpunit` | Corre la suite de tests |
+| `php -d extension=pdo_sqlite -d extension=sqlite3 vendor/bin/phpunit` | Tests con SQLite en memoria (sin Postgres) |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Arquitectura
 
-## Security Vulnerabilities
+```
+app/
+  Http/
+    Controllers/
+      Api/                 -> Controladores REST por dominio (Auth, Product,
+                              Order, Invoice, CashRegister, Report, etc.)
+      ProfileController.php
+      Controller.php       -> Base controller
+    Middleware/
+      EnsureBusinessContext.php  -> Resuelve el negocio activo desde el header
+                                    X-Business-Id (o current_business_id del user)
+      RoleMiddleware.php         -> Gate por rol (`role:admin`, `role:cajero`...)
+      CheckPlanLimits.php        -> Enforcement de limites por plan SaaS
+      JwtGuard.php / IsAuthenticated.php  -> Helpers de autenticacion
+  Models/                  -> Eloquent (Business, User, Product, Order,
+                              OrderItem, Invoice, CashRegister, AuditLog, ...)
+  Policies/                -> Authorization por recurso (Order, Invoice,
+                              Product, User, BusinessSettings, AuditLog)
+  Services/                -> Logica de negocio reusable:
+                              OrderService, InvoiceService, InventoryService,
+                              CashRegisterService, AuditService, RecaptchaService
+config/                    -> sanctum, cors, l5-swagger, cashier, etc.
+database/
+  migrations/              -> Schema versionado
+  seeders/                 -> Datos iniciales (roles, business demo, admin)
+  factories/               -> Factories para tests
+routes/
+  api.php                  -> Endpoints publicos / autenticados con Sanctum
+  business.php             -> Endpoints multi-tenant (CRUD de businesses)
+  web.php                  -> Rutas web (Swagger UI, perfil)
+storage/api-docs/          -> JSON OpenAPI generado por l5-swagger
+tests/
+  Feature/                 -> Tests de endpoints HTTP
+  Unit/                    -> Tests de services / models
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Convenciones
 
-## License
+- **Controllers**: solo orquestan request -> service -> response. Sin logica de negocio.
+- **Services**: toda transaccion compleja (cerrar orden, recibir compra, abrir caja) vive aqui. Inyectables via constructor.
+- **Policies**: cada modelo expuesto al cliente tiene su Policy. Los controllers llaman `$this->authorize(...)`.
+- **Multi-tenant**: el middleware `EnsureBusinessContext` setea el `business_id` activo. Todos los modelos por tenant deben filtrar por `business_id` (idealmente via global scope o query scope `forBusiness()`).
+- **AuditLog**: cualquier mutacion sensible (crear factura, abrir/cerrar caja, ajustar inventario) debe pasar por `AuditService::log()`.
+- **Validacion**: usar FormRequests cuando el payload sea no trivial.
+- **OpenAPI**: anotar los controllers con atributos `@OA\...` (l5-swagger los recoge en build).
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Flujo multi-tenant
+
+1. Login devuelve `access_token` (Sanctum) y el `current_business_id` del usuario.
+2. El frontend manda en cada request:
+   - `Authorization: Bearer {token}`
+   - `X-Business-Id: {id}`
+3. `EnsureBusinessContext` valida que el usuario pertenezca a ese business y lo fija como tenant activo.
+4. Las queries de Eloquent filtran por `business_id` para aislar datos.
+
+### Flujo POS
+
+1. `POST /api/cash-registers/open` -> abre caja del turno (requerido para cobrar).
+2. `POST /api/orders` -> crea orden vacia (estado `open`).
+3. `POST /api/orders/{id}/add-item` -> agrega lineas; reserva stock.
+4. `POST /api/orders/{id}/close` -> registra metodo de pago, descuenta stock, genera `Invoice` via `InvoiceService`.
+5. `POST /api/orders/{id}/cancel` -> devuelve stock.
+6. `POST /api/cash-registers/{id}/close` -> totaliza turno y genera reporte.
+
+## API
+
+- **Auth**: Sanctum (token Bearer obtenido en `POST /api/login`).
+- **Multi-tenant**: header `X-Business-Id` obligatorio en rutas autenticadas.
+- **Docs OpenAPI / Swagger UI**: `GET /api/documentation`.
+- **JSON OpenAPI crudo**: `GET /docs?api-docs.json` (segun config de l5-swagger).
+- **Throttling**: el login usa el rate limiter `throttle:login`.
+- **CORS**: configurado en `config/cors.php` (permite el origen del frontend Vue).
+
+### Endpoints principales (resumen)
+
+| Metodo | Ruta | Descripcion |
+|--------|------|-------------|
+| POST | `/api/login` | Login con credenciales + reCAPTCHA, retorna token |
+| POST | `/api/logout` | Revoca el token actual |
+| GET  | `/api/me` | Perfil del usuario autenticado |
+| GET  | `/api/dashboard` | KPIs del negocio activo |
+| RES  | `/api/categories`, `/api/suppliers`, `/api/clients` | Catalogos |
+| RES  | `/api/products` | Productos + stock |
+| RES  | `/api/purchase-orders` (+`/receive`,`/cancel`) | Compras a proveedores |
+| RES  | `/api/invoices` (+`/cancel`) | Facturas de venta |
+| RES  | `/api/inventory-movements` | Ajustes de inventario |
+| POST | `/api/orders` (+`add-item`,`remove-item`,`close`,`cancel`) | Carrito POS |
+| -    | `/api/cash-registers/...` | Apertura, cierre y reportes de caja |
+| GET  | `/api/business/settings`, POST update | Datos del negocio |
+| GET  | `/api/reports/daily` | Reporte diario de ventas |
+| GET  | `/api/audit-logs` | Bitacora (solo admin) |
+| -    | `/api/users` (admin) | Gestion de usuarios del negocio |
+
+## Testing
+
+```bash
+# Suite completa
+php vendor/bin/phpunit
+
+# Con SQLite en memoria (sin Postgres)
+php -d extension=pdo_sqlite -d extension=sqlite3 vendor/bin/phpunit
+
+# Un archivo o un test
+php vendor/bin/phpunit tests/Feature/OrderTest.php
+php vendor/bin/phpunit --filter=test_can_close_order
+
+# Solo unit o solo feature
+php vendor/bin/phpunit --testsuite=Unit
+php vendor/bin/phpunit --testsuite=Feature
+```
+
+`phpunit.xml` ya trae variables para test (descomentar `DB_CONNECTION=sqlite` + `DB_DATABASE=:memory:` para correr sin BD real).
+
+## Proximos pasos
+
+- Completar integracion de `laravel/cashier` (planes, webhooks, periodo de prueba).
+- Mover el seeder de roles/plan demo a un seeder dedicado por entorno.
+- Cobertura de tests del modulo POS y caja.
+- Anotaciones `@OA\` faltantes para 100% de los endpoints en Swagger.
