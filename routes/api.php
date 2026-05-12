@@ -16,7 +16,7 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\BusinessSettingsController;
 use App\Http\Controllers\Api\UserController;
 
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
 Route::middleware(['auth:sanctum'])->group(function () {
 
@@ -73,4 +73,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'summary']);
+
+    // Businesses (multi-tenant) — definidas en routes/business.php
+    require __DIR__.'/business.php';
 });
+
+// Subscriptions / Billing — definidas en routes/subscription.php
+// (incluye /plans públicos, /subscriptions auth, y /stripe/webhook sin auth)
+require __DIR__.'/subscription.php';

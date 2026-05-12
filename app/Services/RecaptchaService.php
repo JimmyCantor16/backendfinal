@@ -12,6 +12,12 @@ class RecaptchaService
             return false;
         }
 
+        // Bypass para entornos no-productivos (CI, tests E2E, dev local).
+        // En production esto NUNCA pasa porque APP_ENV=production.
+        if (app()->environment(['local', 'testing'])) {
+            return true;
+        }
+
         $response = Http::asForm()->post(
             'https://www.google.com/recaptcha/api/siteverify',
             [

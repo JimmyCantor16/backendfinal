@@ -18,6 +18,24 @@ class CashRegisterController extends Controller
 
     /**
      * Abrir caja registradora.
+     *
+     * @OA\Post(
+     *     path="/api/cash-register/open",
+     *     tags={"CashRegister"},
+     *     summary="Abre la caja registradora del usuario con monto inicial.",
+     *     security={{"sanctum":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"opening_amount"},
+     *             @OA\Property(property="opening_amount", type="number", format="float", minimum=0, example=100.00)
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Caja abierta"),
+     *     @OA\Response(response=401, description="No autenticado"),
+     *     @OA\Response(response=409, description="Ya existe una caja abierta para este usuario"),
+     *     @OA\Response(response=422, description="Error de validación"),
+     * )
      */
     public function open(Request $request)
     {
@@ -39,6 +57,18 @@ class CashRegisterController extends Controller
 
     /**
      * Cerrar caja registradora.
+     *
+     * @OA\Post(
+     *     path="/api/cash-register/{cashRegister}/close",
+     *     tags={"CashRegister"},
+     *     summary="Cierra una caja registradora abierta.",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="cashRegister", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Caja cerrada"),
+     *     @OA\Response(response=401, description="No autenticado"),
+     *     @OA\Response(response=404, description="Caja no encontrada"),
+     *     @OA\Response(response=409, description="Caja ya cerrada u otra regla de negocio"),
+     * )
      */
     public function close(CashRegister $cashRegister)
     {
@@ -53,6 +83,16 @@ class CashRegisterController extends Controller
 
     /**
      * Obtener caja actual del usuario.
+     *
+     * @OA\Get(
+     *     path="/api/cash-register/current",
+     *     tags={"CashRegister"},
+     *     summary="Devuelve la caja registradora abierta del usuario autenticado (si existe).",
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(response=200, description="Caja registradora actual"),
+     *     @OA\Response(response=401, description="No autenticado"),
+     *     @OA\Response(response=404, description="El usuario no tiene una caja abierta"),
+     * )
      */
     public function current(Request $request)
     {
@@ -70,6 +110,17 @@ class CashRegisterController extends Controller
 
     /**
      * Reporte de una caja registradora.
+     *
+     * @OA\Get(
+     *     path="/api/cash-register/{cashRegister}/report",
+     *     tags={"CashRegister"},
+     *     summary="Devuelve el reporte (totales por método de pago, ventas, etc.) de una caja.",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="cashRegister", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Reporte de caja"),
+     *     @OA\Response(response=401, description="No autenticado"),
+     *     @OA\Response(response=404, description="Caja no encontrada"),
+     * )
      */
     public function report(CashRegister $cashRegister)
     {

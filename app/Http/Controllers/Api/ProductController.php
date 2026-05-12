@@ -16,6 +16,22 @@ class ProductController extends Controller
         $this->auditService = $auditService;
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/products",
+     *     tags={"Products"},
+     *     summary="Lista paginada de productos con filtros opcionales.",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="search", in="query", required=false, @OA\Schema(type="string", maxLength=100)),
+     *     @OA\Parameter(name="category_id", in="query", required=false, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="low_stock", in="query", required=false, @OA\Schema(type="boolean")),
+     *     @OA\Parameter(name="is_active", in="query", required=false, @OA\Schema(type="boolean")),
+     *     @OA\Parameter(name="per_page", in="query", required=false, @OA\Schema(type="integer", minimum=1, maximum=100, default=50)),
+     *     @OA\Response(response=200, description="Listado paginado de productos"),
+     *     @OA\Response(response=401, description="No autenticado"),
+     *     @OA\Response(response=422, description="Parámetros inválidos"),
+     * )
+     */
     public function index(Request $request)
     {
         $request->validate([
@@ -53,6 +69,32 @@ class ProductController extends Controller
         return response()->json($query->orderBy('name')->paginate($perPage));
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/products",
+     *     tags={"Products"},
+     *     summary="Crea un producto en el negocio activo.",
+     *     security={{"sanctum":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"category_id","name","sku","purchase_price","sale_price"},
+     *             @OA\Property(property="category_id", type="integer", example=1),
+     *             @OA\Property(property="name", type="string", maxLength=255, example="Coca-Cola 350ml"),
+     *             @OA\Property(property="sku", type="string", maxLength=50, example="SKU-0001"),
+     *             @OA\Property(property="description", type="string", maxLength=255, nullable=true),
+     *             @OA\Property(property="purchase_price", type="number", format="float", example=2.5),
+     *             @OA\Property(property="sale_price", type="number", format="float", example=4),
+     *             @OA\Property(property="stock", type="integer", example=100),
+     *             @OA\Property(property="min_stock", type="integer", example=10),
+     *             @OA\Property(property="is_active", type="boolean", example=true),
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Producto creado"),
+     *     @OA\Response(response=401, description="No autenticado"),
+     *     @OA\Response(response=422, description="Error de validación"),
+     * )
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -78,11 +120,50 @@ class ProductController extends Controller
         return response()->json($product->load('category'), 201);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/products/{product}",
+     *     tags={"Products"},
+     *     summary="Devuelve el detalle de un producto.",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="product", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Producto encontrado"),
+     *     @OA\Response(response=401, description="No autenticado"),
+     *     @OA\Response(response=404, description="Producto no encontrado"),
+     * )
+     */
     public function show(Product $product)
     {
         return response()->json($product->load('category'));
     }
 
+    /**
+     * @OA\Put(
+     *     path="/api/products/{product}",
+     *     tags={"Products"},
+     *     summary="Actualiza un producto existente.",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="product", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"category_id","name","sku","purchase_price","sale_price"},
+     *             @OA\Property(property="category_id", type="integer"),
+     *             @OA\Property(property="name", type="string", maxLength=255),
+     *             @OA\Property(property="sku", type="string", maxLength=50),
+     *             @OA\Property(property="description", type="string", nullable=true),
+     *             @OA\Property(property="purchase_price", type="number", format="float"),
+     *             @OA\Property(property="sale_price", type="number", format="float"),
+     *             @OA\Property(property="min_stock", type="integer"),
+     *             @OA\Property(property="is_active", type="boolean"),
+     *         )
+     *     ),
+     *     @OA\Response(response=200, description="Producto actualizado"),
+     *     @OA\Response(response=401, description="No autenticado"),
+     *     @OA\Response(response=404, description="Producto no encontrado"),
+     *     @OA\Response(response=422, description="Error de validación"),
+     * )
+     */
     public function update(Request $request, Product $product)
     {
         $validated = $request->validate([
@@ -107,6 +188,19 @@ class ProductController extends Controller
         return response()->json($product->load('category'));
     }
 
+    /**
+     * @OA\Delete(
+     *     path="/api/products/{product}",
+     *     tags={"Products"},
+     *     summary="Elimina un producto (solo si no tiene stock disponible).",
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="product", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Producto eliminado"),
+     *     @OA\Response(response=401, description="No autenticado"),
+     *     @OA\Response(response=404, description="Producto no encontrado"),
+     *     @OA\Response(response=409, description="Producto tiene stock — no se puede eliminar"),
+     * )
+     */
     public function destroy(Product $product)
     {
         if ($product->stock > 0) {
